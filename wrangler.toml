@@ -1,6 +1,5 @@
-name = "website-monitor"
+name = "linkcron"
 compatibility_date = "2023-05-15"
-account_id = "YOUR_ACCOUNT_ID"
 
 [vars]
 MAIL_TITLE = "网站监控异常警报"
