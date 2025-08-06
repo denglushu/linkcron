@@ -136,6 +136,8 @@ function generateEmailHtml(statusChecks) {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       line-height: 1.6;
       color: #333;
+      margin: 0;
+      padding: 0;
     }
     .container {
       max-width: 800px;
@@ -146,33 +148,52 @@ function generateEmailHtml(statusChecks) {
     .header {
       background-color: #2c3e50;
       color: white;
-      padding: 20px;
+      padding: 15px 20px;
       border-radius: 5px 5px 0 0;
+      margin-bottom: 15px;
     }
     h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 22px;
     }
     .report-time {
       color: #ecf0f1;
-      font-size: 14px;
-      margin-top: 8px;
+      font-size: 13px;
+      margin-top: 5px;
+    }
+    .content-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .summary {
+      background-color: #eaf2f8;
+      padding: 12px 15px;
+      border-radius: 5px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .summary-item {
+      min-width: 120px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 20px 0;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     th {
       background-color: #3498db;
       color: white;
       text-align: left;
-      padding: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
     }
     td {
-      padding: 12px;
+      padding: 10px 12px;
       border-bottom: 1px solid #ddd;
+      font-size: 14px;
+      word-break: break-all;
     }
     tr:nth-child(even) {
       background-color: #f2f2f2;
@@ -194,15 +215,9 @@ function generateEmailHtml(statusChecks) {
       color: #95a5a6;
       text-align: center;
     }
-    .summary {
-      background-color: #eaf2f8;
-      padding: 15px;
-      border-radius: 5px;
-      margin-bottom: 20px;
-    }
     .badge {
       display: inline-block;
-      padding: 3px 7px;
+      padding: 2px 6px;
       border-radius: 3px;
       font-size: 12px;
       font-weight: bold;
@@ -214,6 +229,13 @@ function generateEmailHtml(statusChecks) {
     .badge-error {
       background-color: #fadbd8;
       color: #e74c3c;
+    }
+    a {
+      color: #2980b9;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -234,39 +256,46 @@ function generateEmailHtml(statusChecks) {
       </div>
     </div>
     
-    <div class="summary">
-      <h3>监控概览</h3>
-      <p>总检查网站: ${statusChecks.length} 个</p>
-      <p>正常网站: <span class="badge badge-ok">${statusChecks.filter(s => s.ok).length}</span></p>
-      <p>异常网站: <span class="badge badge-error">${statusChecks.filter(s => !s.ok).length}</span></p>
-    </div>
-    
-    <table>
-      <thead>
-        <tr>
-          <th>网站名称</th>
-          <th>URL</th>
-          <th>状态</th>
-          <th>状态码</th>
-          <th>响应时间</th>
-          <th>详情</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${statusChecks.map(result => `
+    <div class="content-wrapper">
+      <div class="summary">
+        <div class="summary-item">
+          <strong>总检查网站:</strong> ${statusChecks.length} 个
+        </div>
+        <div class="summary-item">
+          <strong>正常网站:</strong> <span class="badge badge-ok">${statusChecks.filter(s => s.ok).length}</span>
+        </div>
+        <div class="summary-item">
+          <strong>异常网站:</strong> <span class="badge badge-error">${statusChecks.filter(s => !s.ok).length}</span>
+        </div>
+      </div>
+      
+      <table>
+        <thead>
           <tr>
-            <td>${result.name}</td>
-            <td><a href="${result.url}">${result.url}</a></td>
-            <td class="${result.ok ? 'status-ok' : 'status-error'}">
-              ${result.ok ? '✅ 正常' : '❌ 异常'}
-            </td>
-            <td>${result.status}</td>
-            <td>${result.responseTime}</td>
-            <td>${result.statusText}</td>
+            <th>网站名称</th>
+            <th>URL</th>
+            <th>状态</th>
+            <th>状态码</th>
+            <th>响应时间</th>
+            <th>详情</th>
           </tr>
-        `).join('')}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          ${statusChecks.map(result => `
+            <tr>
+              <td>${result.name}</td>
+              <td><a href="${result.url.replace(/\s+/g, '')}">${result.url.replace(/\s+/g, '')}</a></td>
+              <td class="${result.ok ? 'status-ok' : 'status-error'}">
+                ${result.ok ? '✔ 正常' : '✖ 异常'}
+              </td>
+              <td>${result.status}</td>
+              <td>${result.responseTime}</td>
+              <td>${result.statusText}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
     
     <div class="footer">
       <p>---</p>
