@@ -2,70 +2,8 @@ addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
 })
 
-// 站点检查函数
-async function checkSite(url, name) {
-  try {
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      timeout: 10000 // 10秒超时
-    })
-    return {
-      name,
-      status: response.status,
-      ok: response.ok,
-      url,
-      timestamp: new Date().toISOString()
-    }
-  } catch (error) {
-    return {
-      name,
-      status: error.message.includes('timed out') ? 504 : 523,
-      ok: false,
-      url,
-      error: error.message,
-      timestamp: new Date().toISOString()
-    }
-  }
-}
-
-// 邮件发送函数（带重试机制）
-async function sendMail(content, config) {
-  const mailUrl = new URL(config.mailApi)
-  const params = {
-    ...config.mailParams,
-    title: `${new Date().toLocaleString('zh-CN')} 站点监控报告`,
-    content: content
-  }
-  
-  // 参数编码处理
-  Object.entries(params).forEach(([key, value]) => {
-    mailUrl.searchParams.append(key, encodeURIComponent(value))
-  })
-  
-  // 尝试3次发送
-  for (let i = 0; i < 3; i++) {
-    try {
-      const response = await fetch(mailUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept-Language': 'zh-CN,zh;q=0.9'
-        }
-      })
-      
-      const text = await response.text()
-      if (!text.includes('aes.js')) {
-        return { success: true, response: text }
-      }
-    } catch (error) {
-      if (i === 2) throw error
-      await new Promise(resolve => setTimeout(resolve, 2000)) // 2秒后重试
-    }
-  }
-  throw new Error('邮件发送失败：连续收到JS挑战')
-}
-
 async function handleRequest(request) {
-  // 配置信息（生产环境应使用环境变量）
+  // 配置信息（生产环境建议使用环境变量）
   const config = {
     sitesToCheck: [
       { name: "短网址API", url: "https://xzdx.top/api/duan/" },
@@ -82,39 +20,74 @@ async function handleRequest(request) {
   }
 
   try {
-    // 1. 并行检查所有站点
-    const checkPromises = config.sitesToCheck.map(site => 
-      checkSite(site.url, site.name)
+    // 1. 检查所有站点状态
+    const checkResults = await Promise.all(
+      config.sitesToCheck.map(async site => {
+        try {
+          const response = await fetch(site.url, {
+            headers: { 'User-Agent': 'Cloudflare Worker' },
+            timeout: 5000 // 5秒超时
+          })
+          return {
+            name: site.name,
+            status: response.status,
+            ok: response.ok,
+            url: site.url
+          }
+        } catch (error) {
+          return {
+            name: site.name,
+            status: error.message.includes('timed out') ? 504 : 523,
+            ok: false,
+            url: site.url,
+            error: error.message
+          }
+        }
+      })
     )
-    const results = await Promise.all(checkPromises)
-    
-    // 2. 生成可视化报告
-    const statusEmoji = status => 
-      status >= 200 && status < 300 ? '✅' : 
-      status >= 500 ? '🔥' : '⚠️'
-    
-    const reportContent = results.map(r => 
-      `${statusEmoji(r.status)} [${r.name}]\n状态码: ${r.status}\nURL: ${r.url}\n时间: ${new Date(r.timestamp).toLocaleString('zh-CN')}\n${r.error ? '错误: ' + r.error : ''}`
+
+    // 2. 生成邮件内容
+    const statusReport = checkResults.map(result => 
+      `[${result.name}] ${result.ok ? '✅' : '❌'} 状态码: ${result.status}\nURL: ${result.url}`
     ).join('\n\n')
-    
-    // 3. 发送邮件（带重试）
-    const mailResult = await sendMail(reportContent, config)
-    
-    // 4. 返回结构化报告
+
+    // 3. 发送邮件（使用您已验证的参数格式）
+    const mailUrl = new URL(config.mailApi)
+    Object.entries({
+      ...config.mailParams,
+      title: '多站点状态报告',
+      content: statusReport
+    }).forEach(([key, value]) => {
+      mailUrl.searchParams.append(key, value)
+    })
+
+    const mailResponse = await fetch(mailUrl.toString(), {
+      headers: {
+        'User-Agent': 'Cloudflare Worker',
+        'Accept': 'text/html'
+      }
+    })
+
+    // 4. 处理邮件响应
+    const mailResult = await mailResponse.text()
+    const isJsChallenge = mailResult.includes('aes.js') && mailResult.includes('slowAES.decrypt')
+
+    // 5. 返回综合报告
     return new Response(JSON.stringify({
       success: true,
-      sites: results,
-      mailStatus: 'sent_successfully',
+      checkResults,
+      mailApiUrl: mailUrl.toString(),
+      mailApiResponse: isJsChallenge ? "收到JS挑战响应" : "邮件已发送",
+      isJavaScriptChallenge: isJsChallenge,
       timestamp: new Date().toISOString()
     }, null, 2), {
       headers: { 
-        'Content-Type': 'application/json; charset=utf-8',
-        'X-Monitor-Version': '3.1'
+        'Content-Type': 'application/json',
+        'X-Worker-Version': '2.1'
       }
     })
-    
+
   } catch (error) {
-    // 错误处理
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
