@@ -4,13 +4,12 @@ addEventListener('fetch', event => {
 
 async function handleRequest(request) {
   try {
-    // 1. 访问目标API获取数据
+    // 1. 访问目标API仅获取状态码
     const apiUrl = 'https://xzdx.top/api/duan/'
     const apiResponse = await fetch(apiUrl)
-    const apiData = await apiResponse.text()
     
-    // 2. 准备邮件内容
-    const status = `网站状态: ${apiResponse.status}, 内容: ${apiData.substring(0, 100)}...`
+    // 2. 准备邮件内容（仅包含状态码）
+    const status = `网站状态码: ${apiResponse.status}`
     
     // 3. 配置邮件发送参数
     const mailUrl = 'https://zyj.22web.org/mail.php'
@@ -27,10 +26,10 @@ async function handleRequest(request) {
     const mailResponse = await fetch(`${mailUrl}?${params.toString()}`)
     const mailResult = await mailResponse.text()
     
-    // 5. 返回结果
+    // 5. 返回简化响应
     return new Response(JSON.stringify({
-      apiStatus: apiResponse.status,
-      mailResult: mailResult
+      statusCode: apiResponse.status,
+      mailSent: mailResult.includes('成功') // 假设返回内容包含"成功"表示发送成功
     }), {
       headers: { 'Content-Type': 'application/json' }
     })
