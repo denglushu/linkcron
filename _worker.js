@@ -126,30 +126,95 @@ async function handleRequest(request) {
 
 // 生成美观的HTML邮件内容
 function generateEmailHtml(statusChecks) {
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <title>网站监控报告</title>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
-    .header { background-color: #2c3e50; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
-    h1 { margin: 0; font-size: 24px; }
-    .report-time { color: #ecf0f1; font-size: 14px; margin-top: 8px; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    th { background-color: #3498db; color: white; text-align: left; padding: 12px; }
-    td { padding: 12px; border-bottom: 1px solid #ddd; }
-    tr:nth-child(even) { background-color: #f2f2f2; }
-    tr:hover { background-color: #e8f4fc; }
-    .status-ok { color: #27ae60; font-weight: bold; }
-    .status-error { color: #e74c3c; font-weight: bold; }
-    .footer { margin-top: 20px; font-size: 12px; color: #95a5a6; text-align: center; }
-    .summary { background-color: #eaf2f8; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-    .badge { display: inline-block; padding: 3px 7px; border-radius: 3px; font-size: 12px; font-weight: bold; }
-    .badge-ok { background-color: #d5f5e3; color: #27ae60; }
-    .badge-error { background-color: #fadbd8; color: #e74c3c; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    .header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 20px;
+      border-radius: 5px 5px 0 0;
+    }
+    h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .report-time {
+      color: #ecf0f1;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+      text-align: left;
+      padding: 12px;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    tr:hover {
+      background-color: #e8f4fc;
+    }
+    .status-ok {
+      color: #27ae60;
+      font-weight: bold;
+    }
+    .status-error {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #95a5a6;
+      text-align: center;
+    }
+    .summary {
+      background-color: #eaf2f8;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 7px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .badge-ok {
+      background-color: #d5f5e3;
+      color: #27ae60;
+    }
+    .badge-error {
+      background-color: #fadbd8;
+      color: #e74c3c;
+    }
   </style>
 </head>
 <body>
