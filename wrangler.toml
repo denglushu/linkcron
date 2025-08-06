@@ -1,5 +1,5 @@
 # wrangler.toml
 name = 'linkcron'
 main = "_worker.js"
-compatibility_date = "2025-08-6"
+compatibility_date = "2025-08-06"
 keep_vars = true
