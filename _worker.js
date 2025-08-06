@@ -1,4 +1,4 @@
-addEventListener('fetch', event => {
+addEventListener('scheduled', event => {
   event.respondWith(handleRequest(event.request))
 })
 
