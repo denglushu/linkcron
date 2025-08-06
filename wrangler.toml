@@ -1,8 +1,5 @@
-name = "linkcron"
-compatibility_date = "2023-05-15"
-
-[vars]
-MAIL_TITLE = "网站监控异常警报"
-
-[triggers]
-crons = ["*/10 * * * *"]  # 每10分钟执行一次
+# wrangler.toml
+name = 'linkcron'
+main = "_worker.js"
+compatibility_date = "2025-08-6"
+keep_vars = true
