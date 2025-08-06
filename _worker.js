@@ -6,17 +6,18 @@ async function handleRequest(request) {
   // 配置信息
   const config = {
     targetUrls: [
-      { name: '短视频API', url: 'https://xzdx.top/api/duan/' }
+      { name: '短视频API', url: 'https://xzdx.top/api/duan/' },
+      { name: '长转短API', url: 'https://www.ffapi.cn/int/v1/longdwz' },
+      { name: 'IP查询API', url: 'https://api.janelink.cn/api/ip.php' }
     ],
-    // 新的邮件API配置
     mailApi: 'http://api.mmp.cc/api/mail',
     mailParams: {
-      email: 'jusuvip@163.com',    // 发信邮箱
-      key: '408065802l',           // 邮箱授权码
-      name: '网站监控系统',         // 发信昵称
-      mail: 'dlushu@163.com',      // 收件邮箱
-      host: 'smtp.163.com',        // SMTP服务器
-      title: '网站状态监控报告'     // 邮件标题
+      email: 'jusuvip@163.com',
+      key: '408065802l',
+      name: '网站监控系统',
+      mail: 'dlushu@163.com',
+      host: 'smtp.163.com',
+      title: '网站状态监控报告'
     },
     timeout: 8000
   }
@@ -60,20 +61,45 @@ async function handleRequest(request) {
     // 2. 检查是否有异常网站
     const hasError = statusChecks.some(result => !result.ok)
 
-    // 3. 生成邮件正文内容（仅当有异常时才发送）
+    // 3. 仅当有异常时才发送邮件
     if (hasError) {
-      const mailText = `网站状态监控报告\r\n生成时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\r\n\r\n` +
-        statusChecks.map(result => 
-          `【${result.name}】\r\nURL: ${result.url}\r\n状态: ${result.ok ? '✅ 正常' : '❌ 异常'}\r\n` +
-          `状态码: ${result.status}\r\n响应时间: ${result.responseTime}\r\n详情: ${result.statusText}\r\n`
-        ).join('\r\n') +
-        `\r\n---\r\n本邮件由自动监控系统生成`
+      // 使用HTML格式邮件确保换行可靠
+      const mailHtml = `
+        <html>
+        <body>
+          <h2>网站状态监控报告</h2>
+          <p>生成时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>
+          <table border="1" cellpadding="5" cellspacing="0">
+            <tr>
+              <th>网站名称</th>
+              <th>URL</th>
+              <th>状态</th>
+              <th>状态码</th>
+              <th>响应时间</th>
+              <th>详情</th>
+            </tr>
+            ${statusChecks.map(result => `
+              <tr>
+                <td>${result.name}</td>
+                <td>${result.url}</td>
+                <td>${result.ok ? '✅ 正常' : '❌ 异常'}</td>
+                <td>${result.status}</td>
+                <td>${result.responseTime}</td>
+                <td>${result.statusText}</td>
+              </tr>
+            `).join('')}
+          </table>
+          <p>---<br/>本邮件由自动监控系统生成</p>
+        </body>
+        </html>
+      `
 
-      // 4. 发送邮件请求
+      // 4. 发送HTML格式邮件
       const mailApiUrl = new URL(config.mailApi)
       Object.entries({
         ...config.mailParams,
-        text: mailText  // 邮件内容参数
+        text: mailHtml,  // 使用HTML内容
+        contentType: 'html'  // 明确指定HTML格式
       }).forEach(([key, value]) => {
         mailApiUrl.searchParams.append(key, value)
       })
@@ -84,10 +110,8 @@ async function handleRequest(request) {
         }
       })
 
-      // 5. 处理邮件API响应
       const mailResult = await mailResponse.json()
 
-      // 6. 返回监控结果（包含邮件发送状态）
       return new Response(JSON.stringify({
         success: true,
         statusChecks: statusChecks,
@@ -101,7 +125,6 @@ async function handleRequest(request) {
         }
       })
     } else {
-      // 所有网站正常，不发送邮件
       return new Response(JSON.stringify({
         success: true,
         statusChecks: statusChecks,
@@ -116,7 +139,6 @@ async function handleRequest(request) {
       })
     }
   } catch (error) {
-    // 错误处理
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
