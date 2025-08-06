@@ -24,8 +24,10 @@ async function runMonitoringTask() {
   const config = {
     targetUrls: [
       { name: '短视频API', url: 'https://xzdx.top/api/duan/' },
-      { name: '长转短API', url: 'https://www.ffapi.cn/int/v1/longdwz' },
-      { name: 'IP查询API', url: 'https://api.janelink.cn/api/ip.php' }
+      { name: '泄露查询API', url: 'https://api.janelink.cn/api/privacy.php?value=1' },
+      { name: 'IP查询API', url: 'https://api.janelink.cn/api/ip.php' },
+      { name: '照妖镜', url: 'https://zyj.22web.org' },
+      { name: '彩虹搭建', url: 'https://dh.janelink.cn' }
     ],
     timeout: 8000
   }
