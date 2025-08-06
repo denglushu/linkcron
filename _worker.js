@@ -6,9 +6,7 @@ async function handleRequest(request) {
   // 配置信息
   const config = {
     targetUrls: [
-      { name: '短视频API', url: 'https://xzdx.top/api/duan/' },
-      { name: '长转短API', url: 'https://www.ffapi.cn/int/v1/longdwz' },
-      { name: 'IP查询API', url: 'https://api.janelink.cn/api/ip.php' }
+      { name: '短视频API', url: 'https://xzdx.top/api/duan/' }
     ],
     // 新的邮件API配置
     mailApi: 'http://api.mmp.cc/api/mail',
