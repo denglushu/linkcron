@@ -14,11 +14,11 @@ async function handleRequest(request) {
     mailApi: 'http://api.mmp.cc/api/mail',
     mailParams: {
       email: 'jusuvip@163.com',    // 发信邮箱
-      key: '408065802l',                // 邮箱授权码
-      name: '网站监控系统',                 // 发信昵称
-      mail: 'dlushu@163.com',             // 收件邮箱                // 发信昵称
-      host: 'smtp.163.com',                // 发信昵称
-      title: '网站状态监控报告'             // 邮件标题
+      key: '408065802l',           // 邮箱授权码
+      name: '网站监控系统',         // 发信昵称
+      mail: 'dlushu@163.com',      // 收件邮箱
+      host: 'smtp.163.com',        // SMTP服务器
+      title: '网站状态监控报告'     // 邮件标题
     },
     timeout: 8000
   }
@@ -59,45 +59,64 @@ async function handleRequest(request) {
       }
     }))
 
-    // 2. 生成邮件正文内容
-    const mailText = `网站状态监控报告\n生成时间：${new Date().toLocaleString('zh-CN')}\n\n` +
-      statusChecks.map(result => 
-        `【${result.name}】\nURL: ${result.url}\n状态: ${result.ok ? '✅ 正常' : '❌ 异常'}\n` +
-        `状态码: ${result.status}\n响应时间: ${result.responseTime}\n详情: ${result.statusText}\n`
-      ).join('\n') +
-      `\n---\n本邮件由自动监控系统生成`
+    // 2. 检查是否有异常网站
+    const hasError = statusChecks.some(result => !result.ok)
 
-    // 3. 发送邮件请求
-    const mailApiUrl = new URL(config.mailApi)
-    Object.entries({
-      ...config.mailParams,
-      text: mailText  // 邮件内容参数
-    }).forEach(([key, value]) => {
-      mailApiUrl.searchParams.append(key, value)
-    })
+    // 3. 生成邮件正文内容（仅当有异常时才发送）
+    if (hasError) {
+      const mailText = `网站状态监控报告\r\n生成时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\r\n\r\n` +
+        statusChecks.map(result => 
+          `【${result.name}】\r\nURL: ${result.url}\r\n状态: ${result.ok ? '✅ 正常' : '❌ 异常'}\r\n` +
+          `状态码: ${result.status}\r\n响应时间: ${result.responseTime}\r\n详情: ${result.statusText}\r\n`
+        ).join('\r\n') +
+        `\r\n---\r\n本邮件由自动监控系统生成`
 
-    const mailResponse = await fetch(mailApiUrl.toString(), {
-      headers: {
-        'Accept': 'application/json'
-      }
-    })
+      // 4. 发送邮件请求
+      const mailApiUrl = new URL(config.mailApi)
+      Object.entries({
+        ...config.mailParams,
+        text: mailText  // 邮件内容参数
+      }).forEach(([key, value]) => {
+        mailApiUrl.searchParams.append(key, value)
+      })
 
-    // 4. 处理邮件API响应
-    const mailResult = await mailResponse.json()
+      const mailResponse = await fetch(mailApiUrl.toString(), {
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
 
-    // 5. 返回监控结果
-    return new Response(JSON.stringify({
-      success: true,
-      statusChecks: statusChecks,
-      mailResponse: mailResult,
-      timestamp: new Date().toISOString()
-    }, null, 2), {
-      headers: { 
-        'Content-Type': 'application/json; charset=utf-8',
-        'X-Monitor-Version': '3.0'
-      }
-    })
+      // 5. 处理邮件API响应
+      const mailResult = await mailResponse.json()
 
+      // 6. 返回监控结果（包含邮件发送状态）
+      return new Response(JSON.stringify({
+        success: true,
+        statusChecks: statusChecks,
+        mailSent: true,
+        mailResponse: mailResult,
+        timestamp: new Date().toISOString()
+      }, null, 2), {
+        headers: { 
+          'Content-Type': 'application/json; charset=utf-8',
+          'X-Monitor-Version': '3.0'
+        }
+      })
+    } else {
+      // 所有网站正常，不发送邮件
+      return new Response(JSON.stringify({
+        success: true,
+        statusChecks: statusChecks,
+        mailSent: false,
+        message: "所有网站正常，未发送邮件",
+        timestamp: new Date().toISOString()
+      }, null, 2), {
+        headers: { 
+          'Content-Type': 'application/json; charset=utf-8',
+          'X-Monitor-Version': '3.0'
+        }
+      })
+    }
   } catch (error) {
     // 错误处理
     return new Response(JSON.stringify({
