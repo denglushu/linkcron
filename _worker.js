@@ -1,8 +1,25 @@
-addEventListener('scheduled', event => {
+// 同时监听 fetch 和 scheduled 事件
+addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
 })
 
+addEventListener('scheduled', event => {
+  event.waitUntil(handleScheduled())
+})
+
+// 处理 HTTP 请求
 async function handleRequest(request) {
+  return await runMonitoringTask()
+}
+
+// 处理定时任务
+async function handleScheduled() {
+  console.log('Cron job triggered at:', new Date().toISOString())
+  return await runMonitoringTask()
+}
+
+// 主监控任务
+async function runMonitoringTask() {
   // 配置信息
   const config = {
     targetUrls: [
@@ -60,14 +77,14 @@ async function handleRequest(request) {
         params: {
           email: MAIL_FROM_EMAIL,        // 发信邮箱
           key: MAIL_API_KEY,             // 邮箱授权码
-          name: MAIL_FROM_NAME,         // 发信昵称
-          mail: MAIL_TO_EMAIL,          // 收件邮箱
-          host: MAIL_SMTP_HOST,         // SMTP服务器
-          title: MAIL_TITLE     // 邮件标题
+          name: MAIL_FROM_NAME,          // 发信昵称
+          mail: MAIL_TO_EMAIL,           // 收件邮箱
+          host: MAIL_SMTP_HOST,          // SMTP服务器
+          title: MAIL_TITLE              // 邮件标题
         }
       }
 
-      // 美化后的HTML邮件模板
+      // 生成HTML邮件内容
       const mailHtml = generateEmailHtml(statusChecks)
 
       // 4. 发送HTML格式邮件
@@ -304,6 +321,5 @@ function generateEmailHtml(statusChecks) {
     </div>
   </div>
 </body>
-</html>
-  `
+</html>`
 }
