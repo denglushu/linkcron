@@ -3,7 +3,7 @@ addEventListener('fetch', event => {
 })
 
 async function handleRequest(request) {
-  // 配置信息（建议使用环境变量）
+  // 配置信息（使用UTF-8编码）
   const config = {
     targetUrls: [
       { name: '短链接API', url: 'https://xzdx.top/api/duan/' },
@@ -43,40 +43,37 @@ async function handleRequest(request) {
       }
     }))
 
-    // 2. 生成邮件内容
+    // 2. 生成邮件内容（纯文本格式）
     const mailContent = statusResults.map(result => 
-      `【${result.name}】\nURL: ${result.url}\n状态: ${result.ok ? '正常' : '异常'}\n状态码: ${result.status}\n详情: ${result.statusText}\n\n`
-    ).join('')
+      `【${result.name}】\nURL: ${result.url}\n状态: ${result.ok ? '正常' : '异常'}\n状态码: ${result.status}\n详情: ${result.statusText}\n`
+    ).join('\n')
 
-    // 3. 构建邮件请求URL
-    const mailUrl = new URL(config.mailApi)
-    Object.entries({...config.mailParams, content: mailContent}).forEach(([key, value]) => {
-      mailUrl.searchParams.append(key, value)
-    })
-
-    // 4. 发送邮件请求
-    const mailResponse = await fetch(mailUrl.toString(), {
+    // 3. 使用POST方式发送邮件（避免URL编码问题）
+    const mailResponse = await fetch(config.mailApi, {
+      method: 'POST',
       headers: {
-        'User-Agent': 'Cloudflare Worker',
-        'Accept': 'text/html'
-      }
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept-Charset': 'UTF-8'
+      },
+      body: new URLSearchParams({
+        ...config.mailParams,
+        content: mailContent
+      })
     })
     
-    // 5. 检查邮件响应是否为JS挑战
+    // 4. 检查邮件响应
     const mailResult = await mailResponse.text()
-    const isJsChallenge = mailResult.includes('aes.js') && mailResult.includes('slowAES.decrypt')
     
-    // 6. 返回响应
+    // 5. 返回响应
     return new Response(JSON.stringify({
       statusChecks: statusResults,
-      mailApiUrl: mailUrl.toString(),
-      mailApiResponse: isJsChallenge ? "收到JS挑战响应" : mailResult,
-      isJavaScriptChallenge: isJsChallenge,
+      mailApiUsed: config.mailApi,
+      mailApiResponse: mailResult,
       timestamp: new Date().toISOString()
     }, null, 2), {
       headers: { 
-        'Content-Type': 'application/json',
-        'X-Worker-Version': '1.4'
+        'Content-Type': 'application/json; charset=utf-8',
+        'X-Worker-Version': '1.5'
       }
     })
     
@@ -86,7 +83,7 @@ async function handleRequest(request) {
       timestamp: new Date().toISOString()
     }, null, 2), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json; charset=utf-8' }
     })
   }
 }
