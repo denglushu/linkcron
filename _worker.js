@@ -14,7 +14,7 @@ async function handleRequest(request) {
     mailApi: 'http://api.mmp.cc/api/mail',
     mailParams: {
       email: 'jusuvip@163.com',    // 发信邮箱
-      key: '408065802l,                // 邮箱授权码
+      key: '408065802l',                // 邮箱授权码
       name: '网站监控系统',                 // 发信昵称
       mail: 'dlushu@163.com',             // 收件邮箱
       title: '网站状态监控报告'             // 邮件标题
