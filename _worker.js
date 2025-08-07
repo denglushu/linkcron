@@ -9,28 +9,19 @@ addEventListener('scheduled', event => {
 
 // 处理 HTTP 请求
 async function handleRequest(request) {
-  // 检查请求来源，只允许特定来源访问
-  const allowedOrigins = [
-    'https://linkcron.janeli.cn', // 替换为你允许的域名
-    // 可以添加其他允许的来源
-  ];
-  
-  const origin = request.headers.get('origin');
-  if (origin && !allowedOrigins.includes(origin)) {
-    return new Response('Access denied', { status: 403 });
-  }
-  
-  return await runMonitoringTask();
+  // 标记为HTTP请求来源（非定时任务）
+  return await runMonitoringTask(false)
 }
 
 // 处理定时任务
 async function handleScheduled() {
   console.log('Cron job triggered at:', new Date().toISOString())
-  return await runMonitoringTask()
+  // 标记为定时任务来源
+  return await runMonitoringTask(true)
 }
 
-// 主监控任务
-async function runMonitoringTask() {
+// 主监控任务，添加isScheduled参数区分来源
+async function runMonitoringTask(isScheduled) {
   // 配置信息
   const config = {
     targetUrls: [
@@ -82,62 +73,74 @@ async function runMonitoringTask() {
     // 2. 检查是否有异常网站
     const hasError = statusChecks.some(result => !result.ok)
 
-    // 3. 仅当有异常时才发送邮件
-    if (hasError) {
-      // 使用环境变量获取邮件配置
-      const mailConfig = {
-        api: MAIL_API_URL,               // Cloudflare Workers 环境变量
-        params: {
-          email: MAIL_FROM_EMAIL,        // 发信邮箱
-          key: MAIL_API_KEY,             // 邮箱授权码
-          name: MAIL_FROM_NAME,          // 发信昵称
-          mail: MAIL_TO_EMAIL,           // 收件邮箱
-          host: MAIL_SMTP_HOST,          // SMTP服务器
-          title: MAIL_TITLE              // 邮件标题
+    // 3. 根据来源处理不同响应
+    if (isScheduled) {
+      // 定时任务：有异常才发送邮件，始终返回JSON
+      if (hasError) {
+        // 使用环境变量获取邮件配置
+        const mailConfig = {
+          api: MAIL_API_URL,               // Cloudflare Workers 环境变量
+          params: {
+            email: MAIL_FROM_EMAIL,        // 发信邮箱
+            key: MAIL_API_KEY,             // 邮箱授权码
+            name: MAIL_FROM_NAME,          // 发信昵称
+            mail: MAIL_TO_EMAIL,           // 收件邮箱
+            host: MAIL_SMTP_HOST,          // SMTP服务器
+            title: MAIL_TITLE              // 邮件标题
+          }
         }
+
+        // 生成HTML邮件内容
+        const mailHtml = generateEmailHtml(statusChecks)
+
+        // 发送HTML格式邮件
+        const mailApiUrl = new URL(mailConfig.api)
+        Object.entries({
+          ...mailConfig.params,
+          text: mailHtml,
+          contentType: 'html'
+        }).forEach(([key, value]) => {
+          mailApiUrl.searchParams.append(key, value)
+        })
+
+        const mailResponse = await fetch(mailApiUrl.toString(), {
+          headers: { 'Accept': 'application/json' }
+        })
+
+        const mailResult = await mailResponse.json()
+
+        return new Response(JSON.stringify({
+          success: true,
+          statusChecks: statusChecks,
+          mailSent: true,
+          mailResponse: mailResult,
+          timestamp: new Date().toISOString()
+        }, null, 2), {
+          headers: { 
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-Monitor-Version': '3.0'
+          }
+        })
+      } else {
+        return new Response(JSON.stringify({
+          success: true,
+          statusChecks: statusChecks,
+          mailSent: false,
+          message: "所有网站正常，未发送邮件",
+          timestamp: new Date().toISOString()
+        }, null, 2), {
+          headers: { 
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-Monitor-Version': '3.0'
+          }
+        })
       }
-
-      // 生成HTML邮件内容
-      const mailHtml = generateEmailHtml(statusChecks)
-
-      // 4. 发送HTML格式邮件
-      const mailApiUrl = new URL(mailConfig.api)
-      Object.entries({
-        ...mailConfig.params,
-        text: mailHtml,
-        contentType: 'html'
-      }).forEach(([key, value]) => {
-        mailApiUrl.searchParams.append(key, value)
-      })
-
-      const mailResponse = await fetch(mailApiUrl.toString(), {
-        headers: { 'Accept': 'application/json' }
-      })
-
-      const mailResult = await mailResponse.json()
-
-      return new Response(JSON.stringify({
-        success: true,
-        statusChecks: statusChecks,
-        mailSent: true,
-        mailResponse: mailResult,
-        timestamp: new Date().toISOString()
-      }, null, 2), {
-        headers: { 
-          'Content-Type': 'application/json; charset=utf-8',
-          'X-Monitor-Version': '3.0'
-        }
-      })
     } else {
-      return new Response(JSON.stringify({
-        success: true,
-        statusChecks: statusChecks,
-        mailSent: false,
-        message: "所有网站正常，未发送邮件",
-        timestamp: new Date().toISOString()
-      }, null, 2), {
-        headers: { 
-          'Content-Type': 'application/json; charset=utf-8',
+      // HTTP请求：不发送邮件，返回HTML报告
+      const htmlContent = generateEmailHtml(statusChecks)
+      return new Response(htmlContent, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
           'X-Monitor-Version': '3.0'
         }
       })
@@ -302,12 +305,12 @@ function generateEmailHtml(statusChecks) {
       <table>
         <thead>
           <tr>
-            <th>网站名称</th>
-            <th>URL</th>
-            <th>状态</th>
-            <th>状态码</th>
-            <th>响应时间</th>
-            <th>详情</th>
+            <<th>网站名称</</th>
+            <<th>URL</</th>
+            <<th>状态</</th>
+            <<th>状态码</</th>
+            <<th>响应时间</</th>
+            <<th>详情</</th>
           </tr>
         </thead>
         <tbody>
@@ -329,7 +332,7 @@ function generateEmailHtml(statusChecks) {
     
     <div class="footer">
       <p>---</p>
-      <p>本邮件由自动监控系统生成，请勿直接回复</p>
+      <p>本报告由自动监控系统生成</p>
       <p>© ${new Date().getFullYear()} 网站监控系统</p>
     </div>
   </div>
