@@ -11,7 +11,7 @@ addEventListener('scheduled', event => {
 async function handleRequest(request) {
   // 检查请求来源，只允许特定来源访问
   const allowedOrigins = [
-    'https://linkcron.janelink.cn', // 替换为你允许的域名
+    'https://linkcron.janelin.cn', // 替换为你允许的域名
     // 可以添加其他允许的来源
   ];
   
