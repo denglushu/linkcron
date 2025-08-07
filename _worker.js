@@ -305,12 +305,12 @@ function generateEmailHtml(statusChecks) {
       <table>
         <thead>
           <tr>
-            <<th>网站名称</</th>
-            <<th>URL</</th>
-            <<th>状态</</th>
-            <<th>状态码</</th>
-            <<th>响应时间</</th>
-            <<th>详情</</th>
+            <th>网站名称</th>
+            <th>URL</th>
+            <th>状态</th>
+            <th>状态码</th>
+            <th>响应时间</th>
+            <th>详情</th>
           </tr>
         </thead>
         <tbody>
