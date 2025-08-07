@@ -9,7 +9,18 @@ addEventListener('scheduled', event => {
 
 // 处理 HTTP 请求
 async function handleRequest(request) {
-  return await runMonitoringTask()
+  // 检查请求来源，只允许特定来源访问
+  const allowedOrigins = [
+    'https://linkcron.janelink.cn', // 替换为你允许的域名
+    // 可以添加其他允许的来源
+  ];
+  
+  const origin = request.headers.get('origin');
+  if (origin && !allowedOrigins.includes(origin)) {
+    return new Response('Access denied', { status: 403 });
+  }
+  
+  return await runMonitoringTask();
 }
 
 // 处理定时任务
